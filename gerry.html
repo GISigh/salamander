@@ -1,67 +1,224 @@
+
 <!DOCTYPE html>
 
 <html>
 
 <head>
-  <title>Texas De-Gerrymandering</title>
+  <title>Texas Districts</title>
   <meta charset="utf-8" />
   <base target="_blank">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.2.0/dist/leaflet.css" integrity="sha512-M2wvCLH6DSRazYeZRIm1JnYyh22purTM+FDB5CsyxtQJYeKq83arPe5wgbNmcFXGqiSH2XR8dT/fJISVA1r/zQ==" crossorigin="" />
   <script src="https://unpkg.com/leaflet@1.2.0/dist/leaflet.js" integrity="sha512-lInM/apFSqyy1o6s89K4iQUKg6ppXEgsVxT35HbzUupEVRh2Eu9Wdl4tHj7dZO0s1uvplcYGmt3498TtHq+log==" crossorigin=""></script>
-  <link rel="stylesheet" href="Control.Geocoder.css" />
-  <script src="Control.Geocoder.js"></script>
   <script src="jquery-2.1.1.min.js"></script>
   <script src="dis.js"></script>
+  
+  <!-- Load Esri Leaflet from CDN -->
+  <script src="https://unpkg.com/esri-leaflet@2.0.8"></script>
+
+   <!-- Esri Leaflet Geocoder -->
+   <link rel="stylesheet" href="https://unpkg.com/esri-leaflet-geocoder@2.2.6/dist/esri-leaflet-geocoder.css">
+   <script src="https://unpkg.com/esri-leaflet-geocoder@2.2.6"></script>
+   
+   <script src="https://unpkg.com/@turf/turf@3.5.1/turf.min.js"></script>
   <style>
-    /*Try adding just the variable var districts = json file to the geojson file and then load the link up here. The variabel will be available to use in the function.*/
+
+    /*Try adding just the variable var districts = json file to the geojson file and then load the link up here. The variable will be available to use in the function.*/
 
     #map {
       height: 600px;
     }
 
+	/*Working on what window size is best*/
     .info {
-      padding: 6px 8px;
+      padding: 10% 10%; 
       font: 14px/16px Arial, Helvetica, sans-serif;
       background: white;
       background: rgba(255, 255, 255, 0.9);
       box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
       border-radius: 5px;
     }
-
+	
     .info h4 {
       margin: 0 0 5px;
       color: #777;
     }
+	
+	/*mess with these later*/
+	/*.modal-content {
+	border-radius: 0;
+	}*/
+	/*.leaflet-bar,
+	.leaflet-bar a:first-child, a:last-child  {
+	border-radius: 1px;
+	}*/
+
+}
+
+/*Zoom buttons*/
+.leaflet-top.leaflet-right .leaflet-control-zoom-out,
+.leaflet-top.leaflet-left .leaflet-control-zoom-out,
+.leaflet-top.leaflet-left .leaflet-control-loading {
+  border-radius: 0 0 1px 1px;
+  width: 28px;
+  height: 28px;
+  line-height: 28px;
+  border-bottom: none;
+}
+.leaflet-top.leaflet-left .leaflet-control-zoom {
+	position: absolute;
+	left: 8px;
+	top: 42px;
+	direction: ltr;
+	box-shadow: 0 0 7px #999!important;
+}
+
+/*Media queries*/
+@media only screen and (min-width: 521px) {
+  .leaflet-top.leaflet-left,
+  .leaflet-sidebar {
+   width: 350px; 
+  }
+
+.leaflet-control-search .search-cancel {
+	left: 275px;
+  }
+  .leaflet-control-search .search-input {
+	  max-width: 300px!important;
+  }
+	.leaflet-top.leaflet-right {
+		top: 0px;
+    z-index: 1000;
+	}
+}
+/*end media queries*/
+
+/*easyButton bar toggle*/
+#toggle {
+    position: absolute;
+    left: 3px;
+    z-index:9999;
+}
+.fa-lg {
+	vertical-align: -10%;
+}
+.fa-border {
+    margin: -7px;
+    padding: 3.7px;
+    border: solid .08em #9C9C9C;
+    background: whitesmoke;
+}
+.leaflet-bar a:hover {
+  /*background-color: #fff;*/
+}
+
+/*Don't use*/
+/*.leaflet-top.leaflet-left {
+    display: -webkit-inline-flex;
+    display: -ms-inline-flexbox;
+    display: -webkit-inline-box;
+    display: inline-flex;
+    direction: rtl;
+    position: absolute;
+    left: 10px!important;
+    top:10px;
+    background: white;
+    box-shadow: 0 1px 7px #999!important;
+    height: 36px;
+    padding-right:6px;
+    border-radius: 1px;
+}*/
+
+.leaflet-top.leaflet-left .leaflet-control {
+  margin: 5px 1px;
+  box-shadow: none;
+}
+
+.leaflet-top.leaflet-left .geocoder-control-input {
+  padding: 5px 0 5px 5px;
+  width: 100%;
+  height: 38px;
+  position: absolute;
+  left: 10px!important;
+  top:5px;
+  background: white;
+  direction: ltr;
+  box-shadow: 0 1px 7px #999!important;
+  font-size: large;
+  border: none;
+  height: 36px;
+  }
+
+.leaflet-top.leaflet-left .geocoder-control-suggestions {
+  direction: ltr;
+}
+
+/*Extends search text fully*/
+.leaflet-top.leaflet-left .geocoder-control-expanded,
+.leaflet-top.leaflet-left .leaflet-touch .geocoder-control-expanded {
+  margin: 0;
+  width: 100%;
+}
+  /*to format map to full screen area; source: http://bl.ocks.org/d3noob/7654694*/
+	body {
+        padding: 0;
+        margin: 0;
+        }
+    html, body, #map {
+        height: 100%;
+        width: 100%;
+        }
   </style>
+  <script type="text/javascript" src="http://gc.kis.v2.scr.kaspersky-labs.com/291E4B8F-6756-BD47-8E49-B57CE5B31397/main.js" charset="UTF-8"></script>
 </head>
 
 <body>
   <div id="map">
   </div>
+  
   <script>
     //Initialize the map
     var mymap = L.map('map').setView([31.15, -99.90], 6);
+	
     // Load the Pioneer Tiles
-    L.tileLayer('https://{s}.tile.thunderforest.com/pioneer/{z}/{x}/{y}.png?apikey=1d8e4763ba4d434ca9c3ba43b3849775', {
-      attribution: 'Pioneer Basemap by Thunderforest, a project by Gravitystorm Limited.'
-    }).addTo(mymap);
+    L.tileLayer('https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png', {
+	attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
+	subdomains: 'abcd',
+	maxZoom: 19
+	}).addTo(mymap);
 
     // control that shows state info on hover
     var info = L.control();
-
+	
+	//options:	{decimals: 2, decimalSeparator: "."});
+	//info.setSize([220,220]);
+	//var info = L.control.info(options)
+      //        .setContent('<h4>Texas Congressional Districts</h4>')
+        //      .addTo(mymap)
+			//  .setSize([220, 220]);
+	
+		
     info.onAdd = function(map) {
       this._div = L.DomUtil.create('div', 'info'); // create a div with a class "info"
       this.update();
       return this._div;
     };
 
-    // method that we will use to update the control based on feature properties passed
+	//this._div.setSize = ([220,220]);
+	
+    // method to update the window based on feature properties
     info.update = function(props) {
-      this._div.innerHTML = '<h4>Texas Districts</h4>' + (props ?
-        '<b>' + props.NAMELSAD + '</b><br />' + props.B02001e1 + ' people' :
-        'Hover over a state');
-    }
-    info.addTo(mymap);
+      this._div.innerHTML = '<h4>Texas Congressional Districts</h4>' + (props ?
+        '<b>' + props.NAMELSAD + '</b><br />' + '<br />' + 'Total Population:' + props.B02001e1 + '<br /><b>' 
+		+ '<br />' + 'Demographic Breakdown' + '</b><br />' + 'White Only: ' + props.B02001e2/props.B02001e1*100 + 
+		'<br />' + 'Black or African American Only: ' + props.B02001e3/props.B02001e1*100 + '<br />' + 'American Indian or Native Alaskan Only: ' 
+		+ props.B02001e4/props.B02001e1*100 + '<br />' + 'Asian Only: ' + props.B02001e5/props.B02001e1*100 + '<br />' + 'Native Hawaiian or Other Pacific Islander Only:' 
+		+ props.B02001e6/props.B02001e1*100 + '<br />' + 'Some Other Race Only: ' + props.B02001e7/props.B02001e1*100 + '<br />' + 'Two or More Races: ' + 
+		props.B02001e8/props.B02001e1*100 + '<br /><br />' + 'Of Hispanic or Latino Origin: ' + props.B03001e3/props.B03001e1*100 + '<br />' + 
+		'Not of Hispanic or Latino Origin: ' + props.B03001e2/props.B03001e1*100 : 'Hover over a district'); //the hispanic/latino origin variable is not in the geojson file.
+    };
+    
+	
+	
 
     var Gstyle = {
       color: "#FF4F19",
@@ -70,9 +227,6 @@
       fillColor: "#FF4F19",
       fillOpacity: 0.1
     };
-    var geocoder = L.Control.geocoder({
-      position: 'topleft'
-    }).addTo(mymap);
 
     function highlightFeature(e) {
       var layer = e.target;
@@ -89,19 +243,76 @@
     function resetHighlight(e) {
       txdist.resetStyle(e.target);
       info.update();
-    }
-
+    };
+	
+	//highlight districts on mouseover and update window content
     function onEachFeature(feature, layer) {
+	  //layer.bindPopup(feature.properties.NAMELSAD);
       layer.on({
-        mouseover: highlightFeature,
-        mouseout: resetHighlight
+        mouseover: highlightFeature, 
+       mouseout: resetHighlight
       });
     }
-
+	
+    // Load district GeoJSON using a jquery ajax call. This had some issues
+    // $.getJSON("districts.geojson", function(data) {
+    //   L.geoJson(data, {
+    //     style: Gstyle,
+    //     onEachFeature: onEachFeature
+    //   }).addTo(mymap);
+    // });
+	
     var txdist = L.geoJson(districts, {
       style: Gstyle,
       onEachFeature: onEachFeature
     }).addTo(mymap);
+	
+	function onClick(e) {
+     mymap.removeLayer(e);
+    };
+	
+	// create the geocoding control and add it to the map ...WISH WE COULD MAKE THE TEXT A DIFFERENT COLOR HERE, TO STAND OUT
+    var searchControl = L.esri.Geocoding.geosearch({useMapBounds:false, collapseAfterResult:false, expanded:true, placeholder:'Search your address to find your district'}).addTo(mymap);
+	
+	// create an empty layer group to store the results and add it to the map
+    var results = L.layerGroup().addTo(mymap);
+	
+	// listen for the results event and add every result to the map
+    searchControl.on("results", function(data) {
+        results.clearLayers();
+        for (var i = data.results.length - 1; i >= 0; i--) {
+			var test = L.marker(data.results[i].latlng).addTo(mymap);
+			var latitude = data.results[i].latlng.lat;
+			var longtitude = data.results[i].latlng.lng;
+			var pt1 = turf.point([longtitude, latitude]);
+			for (i=0; i<districts.features.length; i++) {	
+				if (turf.inside(pt1, districts.features[i])) {
+					var yourDistrict = L.geoJson(districts.features[i],{
+						
+						style:function (feature) {
+							return {fillColor: 'blue',
+							weight: 2,
+							opacity: 0,
+							color: 'white',  //Outline color
+							fillOpacity: .2};
+						  },
+						onEachFeature: function (feature, layer) {
+							info.update(layer.feature.properties);
+							layer.bindPopup('<img src="http://www.conceptdraw.com/How-To-Guide/picture/Pie-chart-Sector-weightings.png" alt="Mountain View" style="width:304px;height:228px;">');
+						},						
+					});
+					yourDistrict.addTo(mymap);
+					//mymap.info.update(youtDistrict.properties);
+					mymap.fitBounds(yourDistrict.getBounds());
+					
+					} 
+			}
+
+		}		
+	});
+	
+	info.addTo(mymap);
+	
   </script>
 
 </body>
